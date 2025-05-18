@@ -24,9 +24,27 @@ fn conv_1d_simple[
     a: LayoutTensor[mut=False, dtype, in_layout],
     b: LayoutTensor[mut=False, dtype, conv_layout],
 ):
+    shared_a = tb[dtype]().row_major[SIZE]().shared().alloc()
+    shared_b = tb[dtype]().row_major[CONV]().shared().alloc()
+
     global_i = block_dim.x * block_idx.x + thread_idx.x
     local_i = thread_idx.x
-    # FILL ME IN (roughly 14 lines)
+
+    if global_i < SIZE:
+        shared_a[local_i] = a[global_i]
+
+    if global_i < CONV:
+        shared_b[local_i] = b[global_i]
+
+    barrier()
+
+    if global_i < SIZE:
+        var res: out.element_type = 0
+        @parameter
+        for s in range(0, CONV):
+            res += shared_a[local_i + s] * shared_b[s] if global_i + s < SIZE else -out.element_type(0)
+
+        out[global_i] = res
 
 
 # ANCHOR_END: conv_1d_simple
@@ -48,9 +66,30 @@ fn conv_1d_block_boundary[
     a: LayoutTensor[mut=False, dtype, in_layout],
     b: LayoutTensor[mut=False, dtype, conv_layout],
 ):
+    shared_a = tb[dtype]().row_major[TPB + CONV_2 - 1]().shared().alloc()
+    shared_b = tb[dtype]().row_major[CONV_2]().shared().alloc()
+
     global_i = block_dim.x * block_idx.x + thread_idx.x
     local_i = thread_idx.x
-    # FILL ME IN (roughly 18 lines)
+
+    if global_i < SIZE_2:
+        shared_a[local_i] = a[global_i]
+    # load the ghost cells
+    if local_i < CONV_2 - 1 and global_i + TPB < SIZE_2:
+        shared_a[local_i + TPB] = a[global_i + TPB]
+
+    if local_i < CONV_2:
+        shared_b[local_i] = b[local_i]
+
+    barrier()
+
+    if global_i < SIZE_2:
+        var res: out.element_type = 0
+        @parameter
+        for s in range(0, CONV_2):
+            res += shared_a[local_i + s] * shared_b[s] if global_i + s < SIZE_2 else -out.element_type(0)
+
+        out[global_i] = res
 
 
 # ANCHOR_END: conv_1d_block_boundary
