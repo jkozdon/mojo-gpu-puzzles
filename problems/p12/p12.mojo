@@ -24,7 +24,24 @@ fn prefix_sum_simple[
 ):
     global_i = block_dim.x * block_idx.x + thread_idx.x
     local_i = thread_idx.x
-    # FILL ME IN (roughly 12 lines)
+
+    shared_a = tb[dtype]().row_major[TPB]().shared().alloc()
+    if global_i < size:
+        shared_a[local_i] = a[global_i]
+    else:
+        shared_a[local_i] = 0
+
+    barrier()
+
+    # @parameter
+    for i in range(0,Int(log2(out.element_type(TPB)))):
+        stride = Int(2**i)
+        if local_i >= stride:
+            shared_a[local_i] += shared_a[local_i - stride]
+        barrier()
+
+    if global_i < size:
+        out[global_i] = shared_a[local_i]
 
 
 # ANCHOR_END: prefix_sum_simple
@@ -48,7 +65,26 @@ fn prefix_sum_local_phase[
 ):
     global_i = block_dim.x * block_idx.x + thread_idx.x
     local_i = thread_idx.x
-    # FILL ME IN (roughly 14 lines)
+
+    shared_a = tb[dtype]().row_major[TPB]().shared().alloc()
+    if global_i < size:
+        shared_a[local_i] = a[global_i]
+    else:
+        shared_a[local_i] = 0
+
+    barrier()
+
+    stride = 1
+
+    # @parameter
+    for i in range(0,Int(log2(out.element_type(TPB)))):
+        stride = Int(2**i)
+        if local_i >= stride:
+            shared_a[local_i] += shared_a[local_i - stride]
+        barrier()
+
+    if global_i < size:
+        out[global_i] = shared_a[local_i]
 
 
 # Kernel 2: Add block sums to their respective blocks
@@ -56,7 +92,9 @@ fn prefix_sum_block_sum_phase[
     layout: Layout
 ](out: LayoutTensor[mut=False, dtype, layout], size: Int):
     global_i = block_dim.x * block_idx.x + thread_idx.x
-    # FILL ME IN (roughly 3 lines)
+
+    if block_idx.x == 1 and global_i < size:
+        out[global_i] += out[block_dim.x - 1]
 
 
 # ANCHOR_END: prefix_sum_complete
