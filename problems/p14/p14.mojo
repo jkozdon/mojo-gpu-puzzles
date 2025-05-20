@@ -25,7 +25,12 @@ fn naive_matmul[
 ):
     row = block_dim.y * block_idx.y + thread_idx.y
     col = block_dim.x * block_idx.x + thread_idx.x
-    # FILL ME IN (roughly 6 lines)
+
+    if row < size and col < size:
+        sum = out.element_type(0)
+        for k in range(size):
+            sum += a[row, k] * b[k, col]
+        out[row, col] = sum
 
 
 # ANCHOR_END: naive_matmul
@@ -43,7 +48,24 @@ fn single_block_matmul[
     col = block_dim.x * block_idx.x + thread_idx.x
     local_row = thread_idx.y
     local_col = thread_idx.x
-    # FILL ME IN (roughly 12 lines)
+
+    shared_a = tb[dtype]().row_major[TPB, TPB]().shared().alloc()
+    shared_b = tb[dtype]().row_major[TPB, TPB]().shared().alloc()
+
+    if row < size and col < size:
+        shared_a[local_row, local_col] = a[row, col]
+        shared_b[local_row, local_col] = b[row, col]
+    else:
+        shared_a[local_row, local_col] = 0
+        shared_b[local_row, local_col] = 0
+
+    barrier()
+
+    if row < size and col < size:
+        sum = out.element_type(0)
+        for k in range(size):
+            sum += shared_a[local_row, k] * shared_b[k, local_col]
+        out[row, col] = sum
 
 
 # ANCHOR_END: single_block_matmul
@@ -66,7 +88,36 @@ fn matmul_tiled[
     local_col = thread_idx.y
     global_row = block_idx.x * TPB + local_row
     global_col = block_idx.y * TPB + local_col
-    # FILL ME IN (roughly 20 lines)
+
+    shared_a = tb[dtype]().row_major[TPB, TPB]().shared().alloc()
+    shared_b = tb[dtype]().row_major[TPB, TPB]().shared().alloc()
+
+    tile_offset = 0
+
+    sum = out.element_type(0)
+    while tile_offset < size:
+        barrier()
+
+        shared_a[local_row, local_col] = (
+            a[global_row, local_col + tile_offset] if global_row < size
+            and local_col + tile_offset < size else 0
+        )
+        shared_b[local_row, local_col] = (
+            b[local_row + tile_offset, global_col] if local_row + tile_offset
+            < size
+            and global_col < size else 0
+        )
+
+        barrier()
+
+        @parameter
+        for k in range(TPB):
+            sum += shared_a[local_row, k] * shared_b[k, local_col]
+
+        tile_offset += TPB
+
+    if global_row < size and global_col < size:
+        out[global_row, global_col] = sum
 
 
 # ANCHOR_END: matmul_tiled
