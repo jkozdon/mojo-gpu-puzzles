@@ -75,9 +75,18 @@ fn transpose_kernel[
     output: LayoutTensor[mut=True, dtype, layout_out, MutableAnyOrigin],
     inp: LayoutTensor[mut=False, dtype, layout_in, MutableAnyOrigin],
 ):
-    # FILL ME IN (roughly 18 lines)
-    ...
-
+    shared = tb[dtype]().row_major[TPB, TPB]().shared().alloc()
+    local_row = thread_idx.y
+    local_col = thread_idx.x
+    global_row = thread_idx.y + block_idx.y * TPB
+    global_col = thread_idx.x + block_idx.x * TPB
+    if global_row < rows and global_col < cols:
+        shared[local_row, local_col] = inp[global_row, global_col]
+    barrier()
+    new_global_row = thread_idx.x + block_idx.y * TPB
+    new_global_col = thread_idx.y + block_idx.x * TPB
+    if new_global_row < cols and new_global_col < rows:
+        output[new_global_row, new_global_col] = shared[local_col, local_row]
 
 # ANCHOR_END: transpose_kernel
 
@@ -272,28 +281,75 @@ struct AttentionCustomOp:
             )
 
             # Step 1: Reshape Q from (d,) to (1, d) - no buffer needed
-            # FILL ME IN 1 line
+            q_2d = q_tensor.reshape[layout_q_2d]()
 
             # Step 2: Transpose K from (seq_len, d) to K^T (d, seq_len)
-            # FILL ME IN 1 function call
+            gpu_ctx.enqueue_function[
+                transpose_kernel[layout_k, layout_k_t, seq_len, d, dtype]
+            ](
+                k_t,
+                k_tensor,
+                grid_dim=transpose_blocks_per_grid,
+                block_dim=matmul_threads_per_block,
+            )
 
             # Step 3: Compute attention scores using matmul: Q @ K^T = (1, d) @ (d, seq_len) -> (1, seq_len)
             # GPU: Uses matrix multiplication to compute all Q · K[i] scores in parallel
             # Reuse scores_weights_buf as (1, seq_len) for scores
-            # FILL ME IN 2 lines
+            s_2d = LayoutTensor[mut=True, dtype, layout_scores_2d, MutableAnyOrigin](
+                    scores_weights_buf.unsafe_ptr()
+            )
+            gpu_ctx.enqueue_function[
+                matmul_idiomatic_tiled[
+                    layout_scores_2d,  # Output layout
+                    1,  # Rows in output (1)
+                    seq_len,  # Columns in output (seq_len)
+                    d,  # Inner dimension (d)
+                    dtype,
+                ]
+            ](
+                s_2d,
+                q_2d,
+                k_t,
+                grid_dim=scores_blocks_per_grid,
+                block_dim=matmul_threads_per_block,
+            )
 
             # Step 4: Reshape scores from (1, seq_len) to (seq_len,) for softmax
-            # FILL ME IN 1 line
+            s_1d = s_2d.reshape[layout_scores]()
 
             # Step 5: Apply softmax to get attention weights
             # FILL ME IN 1 function call
+            gpu_ctx.enqueue_function[
+                softmax_kernel[layout_scores, seq_len, dtype]
+            ](
+                s_1d,
+                s_1d,
+                grid_dim=(1, 1),
+                block_dim=(TPB, 1),
+            )
 
             # Step 6: Reshape weights from (seq_len,) to (1, seq_len) for final matmul
-            # FILL ME IN 1 line
+            s_2d = s_1d.reshape[layout_weights_2d]()
 
             # Step 7: Compute final result using matmul: weights @ V = (1, seq_len) @ (seq_len, d) -> (1, d)
             # Reuse out_tensor reshaped as (1, d) for result
-            # FILL ME IN 2 lines
+            o_2d = output_tensor.reshape[layout_result_2d]()
+            gpu_ctx.enqueue_function[
+                matmul_idiomatic_tiled[
+                    layout_result_2d,  # Output layout
+                    1,  # Rows in output (1)
+                    d,  # Columns in output (d)
+                    seq_len,  # Inner dimension (seq_len)
+                    dtype,
+                ]
+            ](
+                o_2d,
+                scores_weights_buf,
+                v_tensor,
+                grid_dim=result_blocks_per_grid,
+                block_dim=matmul_threads_per_block,
+            )
 
             # ANCHOR_END: attention_orchestration
 
