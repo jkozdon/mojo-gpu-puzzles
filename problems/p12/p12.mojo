@@ -34,14 +34,14 @@ fn prefix_sum_simple[
     barrier()
 
     # @parameter
-    for i in range(0,Int(log2(out.element_type(TPB)))):
+    for i in range(0,Int(log2(output.element_type(TPB)))):
         stride = Int(2**i)
         if local_i >= stride:
             shared_a[local_i] += shared_a[local_i - stride]
         barrier()
 
     if global_i < size:
-        out[global_i] = shared_a[local_i]
+        output[global_i] = shared_a[local_i]
 
 
 # ANCHOR_END: prefix_sum_simple
@@ -65,7 +65,6 @@ fn prefix_sum_local_phase[
 ):
     global_i = block_dim.x * block_idx.x + thread_idx.x
     local_i = thread_idx.x
-<<<<<<< HEAD
 
     shared_a = tb[dtype]().row_major[TPB]().shared().alloc()
     if global_i < size:
@@ -78,18 +77,14 @@ fn prefix_sum_local_phase[
     stride = 1
 
     # @parameter
-    for i in range(0,Int(log2(out.element_type(TPB)))):
+    for i in range(0,Int(log2(output.element_type(TPB)))):
         stride = Int(2**i)
         if local_i >= stride:
             shared_a[local_i] += shared_a[local_i - stride]
         barrier()
 
     if global_i < size:
-        out[global_i] = shared_a[local_i]
-=======
-    # FILL ME IN (roughly 20 lines)
->>>>>>> upstream/main
-
+        output[global_i] = shared_a[local_i]
 
 # Kernel 2: Add block sums to their respective blocks
 fn prefix_sum_block_sum_phase[
@@ -98,7 +93,7 @@ fn prefix_sum_block_sum_phase[
     global_i = block_dim.x * block_idx.x + thread_idx.x
 
     if block_idx.x == 1 and global_i < size:
-        out[global_i] += out[block_dim.x - 1]
+        output[global_i] += output[block_dim.x - 1]
 
 
 # ANCHOR_END: prefix_sum_complete

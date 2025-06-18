@@ -29,10 +29,11 @@ def softmax(
         ],
         custom_extensions=[mojo_kernels],
     ) as graph:
-        input_value, = graph.inputs
+        input_value = graph.inputs[0]
         output = ops.custom(
             name="softmax",
-            values=[input_value, ],
+            values=[input_value],
+            device=DeviceRef.from_device(device),
             out_types=[
                 TensorType(
                     dtype=input_value.tensor.dtype,
@@ -46,7 +47,6 @@ def softmax(
             },
         )[0].tensor
         graph.output(output)
-        pass
 
     # ANCHOR_END: softmax_custom_op_graph
 

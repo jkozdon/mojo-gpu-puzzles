@@ -39,12 +39,12 @@ fn conv_1d_simple[
     barrier()
 
     if global_i < SIZE:
-        var res: out.element_type = 0
+        var res: output.element_type = 0
         @parameter
         for s in range(0, CONV):
-            res += shared_a[local_i + s] * shared_b[s] if global_i + s < SIZE else -out.element_type(0)
+            res += shared_a[local_i + s] * shared_b[s] if global_i + s < SIZE else -output.element_type(0)
 
-        out[global_i] = res
+        output[global_i] = res
 
 
 # ANCHOR_END: conv_1d_simple
@@ -84,12 +84,12 @@ fn conv_1d_block_boundary[
     barrier()
 
     if global_i < SIZE_2:
-        var res: out.element_type = 0
+        var res: output.element_type = 0
         @parameter
         for s in range(0, CONV_2):
-            res += shared_a[local_i + s] * shared_b[s] if global_i + s < SIZE_2 else -out.element_type(0)
+            res += shared_a[local_i + s] * shared_b[s] if global_i + s < SIZE_2 else -output.element_type(0)
 
-        out[global_i] = res
+        output[global_i] = res
 
 
 # ANCHOR_END: conv_1d_block_boundary

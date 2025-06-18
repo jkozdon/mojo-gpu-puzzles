@@ -27,10 +27,10 @@ fn naive_matmul[
     col = block_dim.x * block_idx.x + thread_idx.x
 
     if row < size and col < size:
-        sum = out.element_type(0)
+        sum = output.element_type(0)
         for k in range(size):
             sum += a[row, k] * b[k, col]
-        out[row, col] = sum
+        output[row, col] = sum
 
 
 # ANCHOR_END: naive_matmul
@@ -62,10 +62,10 @@ fn single_block_matmul[
     barrier()
 
     if row < size and col < size:
-        sum = out.element_type(0)
+        sum = output.element_type(0)
         for k in range(size):
             sum += shared_a[local_row, k] * shared_b[k, local_col]
-        out[row, col] = sum
+        output[row, col] = sum
 
 
 # ANCHOR_END: single_block_matmul
@@ -94,7 +94,7 @@ fn matmul_tiled[
 
     tile_offset = 0
 
-    sum = out.element_type(0)
+    sum = output.element_type(0)
     while tile_offset < size:
         barrier()
 
@@ -117,7 +117,7 @@ fn matmul_tiled[
         tile_offset += TPB
 
     if global_row < size and global_col < size:
-        out[global_row, global_col] = sum
+        output[global_row, global_col] = sum
 
 
 # ANCHOR_END: matmul_tiled

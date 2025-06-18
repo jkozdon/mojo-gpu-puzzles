@@ -103,10 +103,10 @@ struct Conv1DCustomOp:
 
             gpu_ctx.enqueue_function[
                 conv1d_kernel[
-                    in_layout, out_layout, conv_layout, input_size, conv_size
+                    in_layout, output_layout, conv_layout, input_size, conv_size
                 ]
             ](
-                out_tensor,
+                output_tensor,
                 input_tensor,
                 kernel_tensor,
                 grid_dim=BLOCKS_PER_GRID,

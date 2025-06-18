@@ -43,7 +43,7 @@ fn dot_product[
       barrier()
 
     if local_i == 0:
-      out[block_idx.x] = shared[local_i]
+      output[block_idx.x] = shared[local_i]
 
 
 # ANCHOR_END: dot_product_layout_tensor

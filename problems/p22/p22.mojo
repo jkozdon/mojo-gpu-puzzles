@@ -118,7 +118,7 @@ fn benchmark_simple_warp_parameterized[test_size: Int](mut b: Bencher) raises:
         alias test_layout = Layout.row_major(test_size)
         alias test_blocks = (ceildiv(test_size, WARP_SIZE), 1)
 
-        out = ctx.enqueue_create_buffer[dtype](1).enqueue_fill(0)
+        output = ctx.enqueue_create_buffer[dtype](1).enqueue_fill(0)
         a = ctx.enqueue_create_buffer[dtype](test_size).enqueue_fill(0)
         b_buf = ctx.enqueue_create_buffer[dtype](test_size).enqueue_fill(0)
 
@@ -127,7 +127,7 @@ fn benchmark_simple_warp_parameterized[test_size: Int](mut b: Bencher) raises:
                 a_host[i] = i
                 b_host[i] = i
 
-        out_tensor = LayoutTensor[dtype, out_layout](out.unsafe_ptr())
+        out_tensor = LayoutTensor[dtype, out_layout](output.unsafe_ptr())
         a_tensor = LayoutTensor[dtype, test_layout](a.unsafe_ptr())
         b_tensor = LayoutTensor[dtype, test_layout](b_buf.unsafe_ptr())
 
@@ -140,7 +140,7 @@ fn benchmark_simple_warp_parameterized[test_size: Int](mut b: Bencher) raises:
             grid_dim=test_blocks,
             block_dim=THREADS_PER_BLOCK,
         )
-        keep(out.unsafe_ptr())
+        keep(output.unsafe_ptr())
         keep(a.unsafe_ptr())
         keep(b_buf.unsafe_ptr())
         ctx.synchronize()

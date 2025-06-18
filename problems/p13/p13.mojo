@@ -45,7 +45,7 @@ fn axis_sum[
         stride /= 2
 
     if local_i == 0:
-        out[batch, 0] = sum[local_i]
+        output[batch, 0] = sum[local_i]
 
 
 # ANCHOR_END: axis_sum

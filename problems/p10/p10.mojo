@@ -45,7 +45,7 @@ fn dot_product(
         barrier()
 
     if local_i == 0:
-        out[block_idx.x] = res
+        output[block_idx.x] = res
 
 
 # ANCHOR_END: dot_product

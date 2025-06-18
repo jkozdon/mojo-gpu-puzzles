@@ -35,7 +35,7 @@ fn pooling[
         res = shared[local_i]
         res += shared[local_i - 1] if global_i > 0 else 0
         res += shared[local_i - 2] if global_i > 1 else 0
-        out[global_i] = res
+        output[global_i] = res
 
 
 # ANCHOR_END: pooling_layout_tensor
