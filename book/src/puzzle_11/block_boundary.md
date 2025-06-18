@@ -1,6 +1,6 @@
 # Block Boundary Version
 
-Implement a kernel that computes a 1D convolution between 1D LayoutTensor `a` and 1D LayoutTensor `b` and stores it in 1D LayoutTensor `out`.
+Implement a kernel that computes a 1D convolution between 1D LayoutTensor `a` and 1D LayoutTensor `b` and stores it in 1D LayoutTensor `output`.
 
 **Note:** _You need to handle the general case. You only need 2 global reads and 1 global write per thread._
 
@@ -34,7 +34,8 @@ Notes:
 2. Load main data: `shared_a[local_i] = a[global_i]`
 3. Load boundary: `if local_i < CONV_2 - 1` handle next block data
 4. Load kernel: `shared_b[local_i] = b[local_i]`
-5. Sum within extended bounds: `if local_i + j < TPB + CONV_2 - 1`
+5. Sum within input bounds: `if global_i + j < SIZE_2`
+
 </div>
 </details>
 
@@ -140,15 +141,15 @@ Size calculation:
 4. **Convolution Computation**:
    ```mojo
    if global_i < a_size:
-       var local_sum: out.element_type = 0
+       var local_sum: output.element_type = 0
        @parameter
        for j in range(CONV_2):
-           if local_i + j < TPB + CONV_2 - 1:
+           if global_i + j < SIZE_2:
                local_sum += shared_a[local_i + j] * shared_b[j]
    ```
    - Uses `@parameter` for compile-time loop unrolling
-   - Proper type inference with `out.element_type`
-   - Extended bounds check for overlap region
+   - Proper type inference with `output.element_type`
+   - Semantically correct bounds check: only compute convolution for valid input positions
 
 ### Memory access pattern analysis
 
@@ -188,12 +189,22 @@ Size calculation:
 
 4. **Boundary Handling**:
    - Explicit zero initialization for out-of-bounds elements which prevents reading from uninitialized shared memory
-   - Proper handling of edge cases
+   - Semantically correct boundary checking using `global_i + j < SIZE_2` instead of shared memory bounds
+   - Proper handling of edge cases without over-computation
+
+### Boundary Condition Improvement
+
+The solution uses `if global_i + j < SIZE_2:` rather than checking shared memory bounds. This approach is:
+
+- **Mathematically correct**: Only computes convolution where input data actually exists
+- **More efficient**: Avoids unnecessary computations for positions beyond the input array
+- **Safer**: Prevents reliance on zero-padding behavior in shared memory
 
 This implementation achieves efficient cross-block convolution while maintaining:
 - Memory safety through proper bounds checking
 - High performance through optimized memory access
 - Clean code structure using LayoutTensor abstractions
 - Minimal synchronization overhead
+- Mathematically sound boundary handling
 </div>
 </details>

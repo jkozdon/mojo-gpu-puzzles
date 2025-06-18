@@ -18,17 +18,17 @@ All puzzles are designed to be run with the provided testing framework that veri
 
 ### Compatible GPU
 
-You'll need a [compatible GPU](https://docs.modular.com/max/faq#gpu-requirements) to run the examples.
+You'll need a [compatible GPU](https://docs.modular.com/max/faq#gpu-requirements) to run the puzzles.
 
 ### Setting up your environment
 
 1. [Clone the GitHub repository](https://github.com/modular/mojo-gpu-puzzles) and navigate to the repository:
 
-```bash
-# Clone the repository
-git clone https://github.com/modular/mojo-gpu-puzzles
-cd mojo-gpu-puzzles
-```
+    ```bash
+    # Clone the repository
+    git clone https://github.com/modular/mojo-gpu-puzzles
+    cd mojo-gpu-puzzles
+    ```
 
 2. Install a package manager to run the Mojo🔥 programs:
 
@@ -63,26 +63,26 @@ cd mojo-gpu-puzzles
 
 3. Run the puzzles via `uv` or `pixi` as follows:
 
-<div class="code-tabs" data-tab-group="package-manager">
-  <div class="tab-buttons">
-    <button class="tab-button">uv</button>
-    <button class="tab-button">pixi</button>
-  </div>
-  <div class="tab-content">
+    <div class="code-tabs" data-tab-group="package-manager">
+      <div class="tab-buttons">
+        <button class="tab-button">uv</button>
+        <button class="tab-button">pixi</button>
+      </div>
+      <div class="tab-content">
 
-```bash
-uv run poe pXX  # Replace XX with the puzzle number
-```
+    ```bash
+    uv run poe pXX  # Replace XX with the puzzle number
+    ```
 
-  </div>
-  <div class="tab-content">
+      </div>
+      <div class="tab-content">
 
-```bash
-pixi run pXX  # Replace XX with the puzzle number
-```
+    ```bash
+    pixi run pXX  # Replace XX with the puzzle number
+    ```
 
-  </div>
-</div>
+      </div>
+    </div>
 
 For example, to run puzzle 01:
 - `uv run poe p01` or

@@ -18,7 +18,7 @@ alias layout = Layout.row_major(SIZE)
 fn prefix_sum_simple[
     layout: Layout
 ](
-    out: LayoutTensor[mut=False, dtype, layout],
+    output: LayoutTensor[mut=False, dtype, layout],
     a: LayoutTensor[mut=False, dtype, layout],
     size: Int,
 ):
@@ -58,13 +58,14 @@ alias extended_layout = Layout.row_major(EXTENDED_SIZE)
 fn prefix_sum_local_phase[
     out_layout: Layout, in_layout: Layout
 ](
-    out: LayoutTensor[mut=False, dtype, out_layout],
+    output: LayoutTensor[mut=False, dtype, out_layout],
     a: LayoutTensor[mut=False, dtype, in_layout],
     size: Int,
     num_blocks: Int,
 ):
     global_i = block_dim.x * block_idx.x + thread_idx.x
     local_i = thread_idx.x
+<<<<<<< HEAD
 
     shared_a = tb[dtype]().row_major[TPB]().shared().alloc()
     if global_i < size:
@@ -85,12 +86,15 @@ fn prefix_sum_local_phase[
 
     if global_i < size:
         out[global_i] = shared_a[local_i]
+=======
+    # FILL ME IN (roughly 20 lines)
+>>>>>>> upstream/main
 
 
 # Kernel 2: Add block sums to their respective blocks
 fn prefix_sum_block_sum_phase[
     layout: Layout
-](out: LayoutTensor[mut=False, dtype, layout], size: Int):
+](output: LayoutTensor[mut=False, dtype, layout], size: Int):
     global_i = block_dim.x * block_idx.x + thread_idx.x
 
     if block_idx.x == 1 and global_i < size:

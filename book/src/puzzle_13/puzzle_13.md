@@ -1,7 +1,7 @@
 # Puzzle 13: Axis Sum
 
 ## Overview
-Implement a kernel that computes a sum over each row of 2D matrix `a` and stores it in `out` using LayoutTensor.
+Implement a kernel that computes a sum over each row of 2D matrix `a` and stores it in `output` using LayoutTensor.
 
 ![Axis Sum visualization](./media/videos/720p30/puzzle_13_viz.gif)
 
@@ -47,7 +47,7 @@ Row 3: [18, 19, 20, 21, 22, 23] → Block(0,3)
 1. Use `batch = block_idx.y` to select row
 2. Load elements: `cache[local_i] = a[batch * size + local_i]`
 3. Perform parallel reduction with halving stride
-4. Thread 0 writes final sum to `out[batch]`
+4. Thread 0 writes final sum to `output[batch]`
 </div>
 </details>
 
@@ -132,14 +132,28 @@ Input Matrix (4×6) with LayoutTensor:                Block Assignment:
 2. **Memory Access Pattern**:
    - LayoutTensor 2D indexing for input: `a[batch, local_i]`
    - Shared memory for efficient reduction
-   - LayoutTensor 2D indexing for output: `out[batch, 0]`
+   - LayoutTensor 2D indexing for output: `output[batch, 0]`
 
 3. **Parallel Reduction Logic**:
    ```mojo
    stride = TPB // 2
    while stride > 0:
-       if local_i < size:
+       if local_i < stride:
            cache[local_i] += cache[local_i + stride]
+       barrier()
+       stride //= 2
+   ```
+
+   **Note**: This implementation has a potential race condition where threads simultaneously read from and write to shared memory during the same iteration. A safer approach would separate the read and write phases:
+   ```mojo
+   stride = TPB // 2
+   while stride > 0:
+       var temp_val: output.element_type = 0
+       if local_i < stride:
+           temp_val = cache[local_i + stride]  # Read phase
+       barrier()
+       if local_i < stride:
+           cache[local_i] += temp_val  # Write phase
        barrier()
        stride //= 2
    ```
@@ -147,7 +161,7 @@ Input Matrix (4×6) with LayoutTensor:                Block Assignment:
 4. **Output Writing**:
    ```mojo
    if local_i == 0:
-       out[batch, 0] = cache[0]  --> One result per batch
+       output[batch, 0] = cache[0]  --> One result per batch
    ```
 
 ### Performance Optimizations:
@@ -166,6 +180,7 @@ Input Matrix (4×6) with LayoutTensor:                Block Assignment:
    - Minimal barriers (only during reduction)
    - Independent processing between rows
    - No inter-block communication needed
+   - **Race condition consideration**: The current implementation may have read-write hazards during parallel reduction that could be resolved with explicit read-write phase separation
 
 ### Complexity Analysis:
 - Time: \\(O(\log n)\\) per row, where n is row length

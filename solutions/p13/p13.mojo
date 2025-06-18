@@ -19,7 +19,7 @@ alias out_layout = Layout.row_major(BATCH, 1)
 fn axis_sum[
     in_layout: Layout, out_layout: Layout
 ](
-    out: LayoutTensor[mut=False, dtype, out_layout],
+    output: LayoutTensor[mut=False, dtype, out_layout],
     a: LayoutTensor[mut=False, dtype, in_layout],
     size: Int,
 ):
@@ -47,15 +47,23 @@ fn axis_sum[
     # do reduction sum per each block
     stride = TPB // 2
     while stride > 0:
+        # Read phase: all threads read the values they need first to avoid race conditions
+        var temp_val: output.element_type = 0
         if local_i < stride:
-            cache[local_i] += cache[local_i + stride]
+            temp_val = cache[local_i + stride]
+
+        barrier()
+
+        # Write phase: all threads safely write their computed values
+        if local_i < stride:
+            cache[local_i] += temp_val
 
         barrier()
         stride //= 2
 
     # writing with local thread = 0 that has the sum for each batch
     if local_i == 0:
-        out[batch, 0] = cache[0]
+        output[batch, 0] = cache[0]
 
 
 # ANCHOR_END: axis_sum_solution

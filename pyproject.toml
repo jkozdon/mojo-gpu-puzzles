@@ -4,7 +4,7 @@ version = "0.0.0"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "modular>=25.3.0",
+    "max>=25.4.0.dev2025051305",
     "poethepoet>=0.34.0",
 ]
 
@@ -59,3 +59,20 @@ p15 = [
 p16-package = "mojo package problems/p16/op -o problems/p16/op.mojopkg"
 p16-test-kernels = { cmd = "mojo test problems/p16", deps = ["p16-package"] }
 p16 = { cmd = "python problems/p16/p16.py", deps = ["p16-package"] }
+
+p17 = [
+    { cmd = "mojo package problems/p17/op -o problems/p17/op.mojopkg" },
+    { cmd = "python problems/p17/p17.py" }
+]
+
+p18 = "python problems/p18/p18.py"
+
+p19 = "python problems/p19/p19.py"
+
+p20 = "python problems/p20/p20.py"
+
+p21 = "mojo problems/p21/p21.mojo"
+
+p22 = "mojo problems/p22/p22.mojo"
+
+p23 = "mojo problems/p23/p23.mojo"
